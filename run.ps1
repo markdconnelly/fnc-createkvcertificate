@@ -24,12 +24,11 @@ using namespace System.Net
     
     # Write to the Azure Functions log stream.
     Write-Host "PowerShell HTTP trigger function processed a request."
+    Write-Host "Metadata: $TriggerMetadata"
 
     # Initialize function level variables
     $errorMessage = ""
     $strKeyVaultName = $env:KeyVaultName
-    $strKeyVaultURL_AFD = $env:KeyVaultURL_AFD
-    $strKeyVaultURL_Regional = $env:KeyVaultURL_Regional
 
     # Check the current connections to Azure. If not connected, stop the function.
     $currentAzContext = Get-AzContext
