@@ -14,7 +14,7 @@
 .LINK
     #
 .EXAMPLE
-    $array = New-MDCAzureManagementGroupRoles
+     Import-AzKeyVaultCertificateFromPowerApps -Certificate $jsonPayloadArray
 #>
 
 using namespace System.Net
