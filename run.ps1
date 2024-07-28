@@ -28,7 +28,12 @@ using namespace System.Net
 
     # Initialize function level variables
     $errorMessage = ""
+    $strSunscriptionId = $env:SubscriptionId
     $strKeyVaultName = $env:KeyVaultName
+    $strCertificateName_PFX = $Request.Params.PFXCertificateName
+    $objPfxSecretName = $Request.Params.PFXSecretName
+    $strPfxFilePath = $Request.Params.PFXFilePath
+
 
     # Check the current connections to Azure. If not connected, stop the function.
     $currentAzContext = Get-AzContext
@@ -39,6 +44,18 @@ using namespace System.Net
     Write-Host "Connected to Azure Resource Manager"
     Write-Host $currentAzContext
     
+    if($errorMessage -eq $null){
+        try {
+            Set-AzContext -SubscriptionId $strSunscriptionId -ErrorAction Stop
+        }
+        catch {
+            Write-Error "Not connected to the correct subscription. Please connect before running this function."
+            $errorMessage = "Not connected to the correct subscription. Please connect before running this function."
+        }
+    }
+    Write-Host "Connected to proper subscription"
+    Write-Host $currentAzContext
+
     # Check if the key vault exists. If it does not, stop the function and return an error to the application.
     if($errorMessage -eq $null){
         try {
@@ -47,63 +64,63 @@ using namespace System.Net
         }
         catch {
             Write-Error "Unable to connect to the certificate management key vault. Please check the connection and try again."
-            $errorMessage = "Unable to connect to the certificate management key vault $objKeyVaultCertOps. Please check the connection and try again."
+            $errorMessage = "Unable to connect to the certificate management key vault. Please check the connection and try again."
         }
     }
 
     # Check if the certificate exists. If it does, stop the function and return an error to the application.
     if($errorMessage -eq $null){
         try {
-            $objKeyVaultCertificate = Get-AzKeyVaultCertificate -VaultName $strKeyVaultName -Name $strCertificateName -ErrorAction Stop
-            Write-Error "Certificate $objKeyVaultCertificate already exists. Return message to app and stop function."
-            $errorMessage = "Certificate $objKeyVaultCertificate already exists. Please check the certificate name and try again."
+            $objKeyVaultCertificate = Get-AzKeyVaultCertificate -VaultName $strKeyVaultName -Name $strCertificateName_PFX -ErrorAction Stop
+            Write-Error "Certificate $strCertificateName_PFX already exists. Return message to app and stop function."
+            $errorMessage = "Certificate $strCertificateName_PFX already exists. Please check the certificate name and try again."
         }
         catch {
-            Write-Host "Certificate $strCertificateName not found. Proceeding with import operation."
+            Write-Host "Certificate $strCertificateName_PFX not found. Proceeding with import operation."
         }
     }
 
     # Attempt to convert the certificate secret to secure string. If it fails, stop the function and return an error to the application.
     if($errorMessage -eq $null){
         try {
+            $strCertificateSecret = Get-AzKeyVaultSecret -VaultName $strKeyVaultName -Name $objPfxSecretName -AsPlainText
             $importSecret = ConvertTo-SecureString -String $strCertificateSecret -AsPlainText -Force
             Write-Host "Certificate secret converted to secure string"
         }
         catch {
             Write-Error "Unable to convert certificate secret to secure string. Please check the secret and try again."
             $errorMessage = "Unable to convert certificate secret to secure string. Please check the secret and try again."
-            return $errorMessage
         }
     }
 
     # Import the certificate into the key vault
     if($errorMessage -eq $null){
         try {
-            Import-AzKeyVaultCertificate -VaultName $strKeyVaultName -Name $strCertificateName -FilePath $strCertificateFilePath -Password $importSecret -ErrorAction Stop
-            Write-Host "Certificate $strCertificateName imported successfully"
+            Import-AzKeyVaultCertificate -VaultName $strKeyVaultName -Name $strCertificateName_PFX -FilePath $strPfxFilePath -Password $importSecret -ErrorAction Stop
+            Write-Host "Certificate $strCertificateName_PFX imported successfully"
         }
         catch {
-            Write-Error "Unable to import certificate $strCertificateName. Please check the certificate file path and try again."
-            $errorMessage = "Unable to import certificate $strCertificateName. Please check the certificate file path and try again."
+            Write-Error "Unable to import certificate $strCertificateName_PFX. Please check the certificate file path and try again."
+            $errorMessage = "Unable to import certificate $strCertificateName_PFX. Please check the certificate file path and try again."
         }
     }
 
     # Document the certificate import operation and return it to the application.
     if($errorMessage -eq $null){
         try {
-            $objKeyVaultCertificate = Get-AzKeyVaultCertificate -VaultName $strKeyVaultName -Name $strCertificateName -IncludePending -ErrorAction Stop
+            $objKeyVaultCertificate = Get-AzKeyVaultCertificate -VaultName $strKeyVaultName -Name $strCertificateName_PFX -IncludePending -ErrorAction Stop
             Write-Host "Certificate details retrieved from the key vault successfully."
 
         }
         catch {
-            Write-Error "Unable to retrieve certificate $strCertificateName from the key vault. Please check the certificate and try again."
-            $errorMessage = "Unable to retrieve certificate $strCertificateName from the key vault. Please check the certificate and try again."
+            Write-Error "Unable to retrieve certificate $strCertificateName_PFX from the key vault. Please check the certificate and try again."
+            $errorMessage = "Unable to retrieve certificate $strCertificateName_PFX from the key vault. Please check the certificate and try again."
         }
     }
 
     if($errorMessage -eq $null){
         try {
-            $objKeyVaultCertificate = $objKeyVaultCertificate | ConvertTo-Json
+            $body = $objKeyVaultCertificate | ConvertTo-Json
             Write-Host "Certificate details converted to JSON successfully."
         }
         catch {
