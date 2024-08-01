@@ -6,5 +6,5 @@
     # To use the Az module in your function app, please uncomment the line below.
     # 'Az' = '12.*'
     # 'Az.KeyVault' = '6.*'
-    # 'Az.Accounts' = '3.*'
+    # 'Az.Accounts' = '2.*'
 }
